@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Underwater Shooter Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            min-height: -webkit-fill-available;
+            background: linear-gradient(to bottom, #03adb3 0%, #003366 100%);
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        canvas {
+            border: 3px solid #30475e;
+            border-radius: 10px;
+            background: linear-gradient(to bottom, #006994 0%, #00264d 100%);
+            box-shadow: 0 0 20px rgba(11, 220, 112, 0.3);
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+        }
+        
+        .hud {
+            position: absolute;
+            padding: min(3vw, 20px) min(4vw, 30px);
+            border-radius: min(3vw, 20px);
+            background: rgba(0, 0, 0, 0.5);
+            color: #fff;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            z-index: 100;
+            font-size: min(5vw, 24px);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+        
+        #score {
+            top: env(safe-area-inset-top, 20px);
+            left: env(safe-area-inset-left, 20px);
+        }
+        
+        #timer {
+            top: env(safe-area-inset-top, 20px);
+            right: env(safe-area-inset-right, 20px);
+        }
+        
+        #mobile-controls {
+            display: none;
+            position: absolute;
+            bottom: env(safe-area-inset-bottom, 20px);
+            left: 0;
+            right: 0;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        #shoot-button {
+            background: rgba(0, 255, 0, 0.3);
+            border: 2px solid rgba(0, 255, 0, 0.5);
+            border-radius: 50%;
+            width: min(20vw, 100px);
+            height: min(20vw, 100px);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: min(4vw, 20px);
+            text-transform: uppercase;
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            touch-action: manipulation;
+        }
+        
+        #game-over {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: min(6vw, 40px);
+            border-radius: min(3vw, 20px);
+            text-align: center;
+            color: #fff;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            width: min(90%, 400px);
+        }
+        
+        #game-over h2 {
+            margin-bottom: min(4vw, 20px);
+            color: #ff0000;
+            font-size: min(6vw, 32px);
+        }
+        
+        #game-over p {
+            margin-bottom: min(4vw, 20px);
+            font-size: min(5vw, 24px);
+        }
+        
+        #restart-btn {
+            padding: min(3vw, 15px) min(6vw, 30px);
+            font-size: min(4vw, 20px);
+            background: #00ff00;
+            border: none;
+            border-radius: min(2vw, 10px);
+            cursor: pointer;
+            color: #000;
+            touch-action: manipulation;
+        }
+        
+        .bubble {
+            position: fixed;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) rotate(0deg);
+            }
+            100% {
+                transform: translateY(-100px) rotate(360deg);
+            }
+        }
+        
+        /* Orientation warning */
+        #orientation-warning {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+        
+        @media (orientation: portrait) and (max-width: 768px) {
+            #orientation-warning {
+                display: flex;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            #game-container {
+                margin: 0;
+            }
+            
+            canvas {
+                border-radius: 0;
+            }
+            
+            #mobile-controls {
+                display: block;
+            }
+            
+            .hud {
+                padding: 10px 20px;
+            }
+        }
+        
+        @media (min-width: 768px) and (max-width: 1024px) {
+            .hud {
+                font-size: min(3vw, 20px);
+            }
+        }
+        
+        /* iOS-specific fixes */
+        @supports (-webkit-touch-callout: none) {
+            body {
+                min-height: -webkit-fill-available;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="orientation-warning">
+        <div>
+            <h2>Please rotate your device</h2>
+            <p>This game works best in landscape mode</p>
+        </div>
+    </div>
+    <div id="game-container">
+        <div id="score" class="hud">Score: <span id="score-value">0</span></div>
+        <div id="timer" class="hud">Time: <span id="timer-value">2:00</span></div>
+        <canvas id="gameCanvas"></canvas>
+        <div id="mobile-controls">
+            <button id="shoot-button">Fire</button>
+        </div>
+        <div id="game-over">
+            <h2>Game Over!</h2>
+            <p>Final Score: <span id="final-score">0</span></p>
+            <button id="restart-btn">Play Again</button>
+        </div>
+    </div>
+    <script src="js/game.js"></script>
+    <script src="js/gun.js"></script>
+    <script src="js/creature.js"></script>
+    <script src="js/bullet.js"></script>
+    <script>
+        // Add random bubbles
+        function createBubble() {
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble';
+            const size = Math.random() * 20 + 10;
+            bubble.style.width = size + 'px';
+            bubble.style.height = size + 'px';
+            bubble.style.left = Math.random() * 100 + '%';
+            bubble.style.animation = `float ${Math.random() * 4 + 6}s linear infinite`;
+            document.body.appendChild(bubble);
+            
+            bubble.addEventListener('animationend', () => {
+                bubble.remove();
+            });
+        }
+        
+        setInterval(createBubble, 500);
+        
+        // Handle iOS viewport height issue
+        function setViewportHeight() {
+            document.documentElement.style.setProperty(
+                '--vh',
+                `${window.innerHeight * 0.01}px`
+            );
+        }
+        
+        window.addEventListener('resize', setViewportHeight);
+        window.addEventListener('orientationchange', setViewportHeight);
+        setViewportHeight();
+    </script>
+</body>
+</html> 
