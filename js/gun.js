@@ -80,7 +80,7 @@ class Gun {
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.width, 0, Math.PI * 2);
         ctx.fill();
-        
+       //good work 
         // Draw charge particles
         this.chargeParticles.forEach(particle => {
             ctx.fillStyle = `rgba(0, 255, 0, ${particle.life})`;
